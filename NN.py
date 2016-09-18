@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
-import pdb,math
+import pdb, math, pickle
 import matplotlib.pyplot as plt
 
 class NN(object):
 # initialization code
-    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.01,lambda_reg=0.001,regular=True):
+    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.01,lambda_reg=0.0005,regular=True):
         #  parameter initialization
         self.train_data=train_data
         self.train_labels=train_labels
@@ -108,13 +108,14 @@ class NN(object):
 # accuracy checking and training LANGUAGE_CODE = 'en-us'
     def train(self):
         ''' trains the neural network, calling backprop() and updating the weight with update()'''
-        for i in range(250):
-            if (i % 5==0):
+        for i in range(50):
+            if (i % 10==0):
                 cross_entropy, training_error = self.cross_entropy_and_accuracy()
                 print ("Iter: %d, loss & train_acc_per (%f,%f) " %(i,cross_entropy,training_error ))
                 #dw1, dw2, db1, db2 = self.back_prop(self.train_data,self.train_labels)
                 #self.update(dw1, dw2, db1, db2)
                 self.stochastic_gradient_descent()
+        pickle.dump( self, open( "nn.p", "wb" ) )
 
 
     def cross_entropy_and_accuracy(self):
@@ -131,7 +132,7 @@ class NN(object):
         index_y=y-1           # y ranges in 1-26, subtract 1 for indexing to make range 0-25
         prob_arr=(probs[np.arange(self.num_samples),index_y.T])
         logs=-np.log(prob_arr)
-        regularization_cost=self.lambda_reg/2*np.mean(sum(self.w1**2))+np.mean(sum(self.w2**2))
+        regularization_cost=self.lambda_reg/2*np.mean(sum(self.w1**2))+self.lambda_reg/2*np.mean(sum(self.w2**2))
         cross_entropy=np.mean(logs)+regularization_cost
 
         # training error computation
@@ -151,6 +152,10 @@ class NN(object):
 if __name__ == "__main__":
     train_data=pd.read_csv('train_data.csv', header=None)
     train_labels=pd.read_csv('train_labels.csv', header=None)
-    NN_obj = NN(train_data,train_labels) #15000 x 16
+    load_previous=True
+    if load_previous:
+        NN_obj = pickle.load( open( "nn.p", "rb" ) )
+    else:
+        NN_obj = NN(train_data,train_labels) #15000 x 16
     NN_obj.train()
     NN_obj.predict()

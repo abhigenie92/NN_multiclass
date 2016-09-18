@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class NN(object):
 # initialization code
-    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.01,mini_batch_size=100):
+    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.01,lambda_reg=0.001,regular=True):
         #  parameter initialization
         self.train_data=train_data
         self.train_labels=train_labels
@@ -13,6 +13,8 @@ class NN(object):
         num_classes=self.train_labels.ix[:,0].nunique()
         self.num_samples=num_samples
         self.learning_rate=learning_rate
+        self.lambda_reg=lambda_reg
+        self.regular=regular
 
         # number of neurons in each layer
         self.input_layer=num_features
@@ -61,8 +63,8 @@ class NN(object):
     def back_prop(self,X,y):
         '''takes the features as X and y as label'''
         # 2nd layer
-        delta_scores = self.forward(X) # the output of the neural network.A prob. for each class M X N.
-        delta_scores[range(self.num_samples),self.train_labels-1] -= 1
+        delta_scores = self.forward(X) # the output of the neural network. A prob. for each class M X N.
+        delta_scores[range(self.num_samples),self.train_labels-1] -= 1 # added
 
         backprop_error_3 = delta_scores / self.num_samples
         dw2 = np.dot(self.a2.T, backprop_error_3)
@@ -92,28 +94,27 @@ class NN(object):
             delta_scores = self.forward(sample)
             delta_scores[:,label] -= 1.0
             backprop_error_3=delta_scores
-            dw2 = np.dot(self.a2.T, backprop_error_3)
+            dw2 = np.dot(self.a2.T, backprop_error_3)+self.lambda_reg*self.w2
             db2 = np.sum(backprop_error_3, axis=0, keepdims=True)
             #1st layer
             delta_hidden=self.derivative_sigmoid(self.z2)
             backprop_error_2 = np.dot(backprop_error_3, self.w2.T)*delta_hidden
             sample=np.resize(sample.values,(sample.shape[0],1)) # convert from (16
-            dw1 = np.dot(sample, backprop_error_2)
-            db1 = np.sum(delta_hidden, axis =0, keepdims=True)
+            dw1 = np.dot(sample, backprop_error_2)+self.lambda_reg*self.w1
+            db1 = np.sum(backprop_error_2, axis =0, keepdims=True)
             self.update(dw1, dw2, db1, db2)
-            pdb.set_trace()
+
 
 # accuracy checking and training LANGUAGE_CODE = 'en-us'
     def train(self):
         ''' trains the neural network, calling backprop() and updating the weight with update()'''
-        for i in range(1000):
-            if (i % 1==0):
-                self.cross_entropy_and_accuracy()
-
-                print ("Iter: %d, loss & train_acc_per (%f,%f) " %(i, *self.cross_entropy_and_accuracy()))
-                dw1, dw2, db1, db2 = self.back_prop(self.train_data,self.train_labels)
-                self.update(dw1, dw2, db1, db2)
-                #self.stochastic_gradient_descent()
+        for i in range(250):
+            if (i % 5==0):
+                cross_entropy, training_error = self.cross_entropy_and_accuracy()
+                print ("Iter: %d, loss & train_acc_per (%f,%f) " %(i,cross_entropy,training_error ))
+                #dw1, dw2, db1, db2 = self.back_prop(self.train_data,self.train_labels)
+                #self.update(dw1, dw2, db1, db2)
+                self.stochastic_gradient_descent()
 
 
     def cross_entropy_and_accuracy(self):
@@ -127,18 +128,29 @@ class NN(object):
 
         # cross-entropy computation
         probs=self.forward(X)
-        y=y-1           # y ranges in 1-26, subtract 1 for indexing to make range 0-25
-        prob_arr=(probs[np.arange(self.num_samples),y.T])
+        index_y=y-1           # y ranges in 1-26, subtract 1 for indexing to make range 0-25
+        prob_arr=(probs[np.arange(self.num_samples),index_y.T])
         logs=-np.log(prob_arr)
-        cross_entropy=np.mean(logs)
+        regularization_cost=self.lambda_reg/2*np.mean(sum(self.w1**2))+np.mean(sum(self.w2**2))
+        cross_entropy=np.mean(logs)+regularization_cost
 
         # training error computation
-        predicted_labels=np.argmax(probs, axis=1)+1
+        predicted_labels=np.argmax(probs, axis=1)+1 # since it predicts 0-25 to convert to 1-26
         training_error=np.mean(y.ix[:,0]==predicted_labels)
+        #pdb.set_trace()
         return cross_entropy, training_error
+
+    def predict(self):
+        '''predicts the output data'''
+        test_data=pd.read_csv('test_data.csv')
+        probs=self.forward(test_data)
+        predicted_labels=np.argmax(probs, axis=1)+1
+        predicted_labels=predicted_labels.astype(int)
+        np.savetxt("test_labels.csv", predicted_labels,fmt='%i', delimiter=",")
 
 if __name__ == "__main__":
     train_data=pd.read_csv('train_data.csv', header=None)
     train_labels=pd.read_csv('train_labels.csv', header=None)
     NN_obj = NN(train_data,train_labels) #15000 x 16
     NN_obj.train()
+    NN_obj.predict()

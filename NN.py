@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class NN(object):
 # initialization code
-    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.001,mini_batch_size=100):
+    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.01,mini_batch_size=100):
         #  parameter initialization
         self.train_data=train_data
         self.train_labels=train_labels
@@ -121,14 +121,13 @@ class NN(object):
         # cross-entropy computation
         probs=self.forward(X)
         y=y-1           # y ranges in 1-26, subtract 1 for indexing to make range 0-25
-        prob_arr=(probs[np.arange(self.num_samples),(y-1).T])
+        prob_arr=(probs[np.arange(self.num_samples),y.T])
         logs=-np.log(prob_arr)
         cross_entropy=np.mean(logs)
 
         # training error computation
         predicted_labels=np.argmax(probs, axis=1)+1
         training_error=np.mean(y.ix[:,0]==predicted_labels)
-
         return cross_entropy, training_error
 
 if __name__ == "__main__":

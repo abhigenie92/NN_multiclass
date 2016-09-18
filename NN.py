@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class NN(object):
 # initialization code
-    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.5,mini_batch_size=100):
+    def __init__(self,train_data,train_labels,hidden_layer_units=100,learning_rate=0.001,mini_batch_size=100):
         #  parameter initialization
         self.train_data=train_data
         self.train_labels=train_labels
@@ -107,7 +107,7 @@ class NN(object):
             if (i % 1==0):
                 self.cross_entropy_and_accuracy()
                 print ("Iter: %d, loss & train_acc_per (%f,%f) " %(i, *self.cross_entropy_and_accuracy()))
-                dw1, dw2, db1, db2 = self.back_prop()
+                dw1, dw2, db1, db2 = self.back_prop(self.train_data,self.train_labels)
                 self.update(dw1, dw2, db1, db2)
     def cross_entropy_and_accuracy(self):
         '''

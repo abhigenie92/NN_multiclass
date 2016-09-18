@@ -44,9 +44,10 @@ class NN(object):
 
     def softmax(self,x):
         '''computes the sigmoid activation function'''
-        x=np.exp(x)                   # raise to exponent
-        x = x / x.sum(axis=1)[:,None] # divide by summation over all classes
-        return x
+
+        exp_x=np.exp(x)                   # raise to exponent
+        probabilities = exp_x / np.sum(exp_x,axis=1, keepdims=True) # divide by summation over all classes
+        return probabilities
 
     def sigmoid(self,z):
         '''computes the sigmoid activation function'''
@@ -62,6 +63,7 @@ class NN(object):
         # 2nd layer
         delta_scores = self.forward(X) # the output of the neural network.A prob. for each class M X N.
         delta_scores[range(self.num_samples),self.train_labels-1] -= 1
+
         backprop_error_3 = delta_scores / self.num_samples
         dw2 = np.dot(self.a2.T, backprop_error_3)
         db2 = np.sum(backprop_error_3, axis=0, keepdims=True)
@@ -70,7 +72,7 @@ class NN(object):
         delta_hidden=self.derivative_sigmoid(self.z2)
         backprop_error_2 = np.dot(backprop_error_3, self.w2.T)*delta_hidden
         dw1 = np.dot(self.train_data.T, backprop_error_2)
-        db1 = np.sum(delta_hidden, axis =0, keepdims=True)
+        db1 = np.sum(backprop_error_2, axis =0, keepdims=True)
         return dw1, dw2, db1, db2
 
     def update(self,dw1, dw2, db1, db2):
@@ -99,16 +101,21 @@ class NN(object):
             dw1 = np.dot(sample, backprop_error_2)
             db1 = np.sum(delta_hidden, axis =0, keepdims=True)
             self.update(dw1, dw2, db1, db2)
+            pdb.set_trace()
 
-# accuracy checking and training code
+# accuracy checking and training LANGUAGE_CODE = 'en-us'
     def train(self):
         ''' trains the neural network, calling backprop() and updating the weight with update()'''
         for i in range(1000):
             if (i % 1==0):
                 self.cross_entropy_and_accuracy()
+
                 print ("Iter: %d, loss & train_acc_per (%f,%f) " %(i, *self.cross_entropy_and_accuracy()))
                 dw1, dw2, db1, db2 = self.back_prop(self.train_data,self.train_labels)
                 self.update(dw1, dw2, db1, db2)
+                #self.stochastic_gradient_descent()
+
+
     def cross_entropy_and_accuracy(self):
         '''
         1. computes the cross-entropy cost-function for train_data and train_labels
